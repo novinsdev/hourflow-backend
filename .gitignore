@@ -1,0 +1,7 @@
+# .gitignore
+node_modules
+dist
+.env
+*.log
+# keep secrets out of git:
+firebase-service-account.json.env
