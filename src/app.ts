@@ -2,8 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import rateLimit from 'express-rate-limit'; // ← add this
 import { env } from './config/env';
-import { requestId } from './middleware/requestID';
+import { requestId } from './middleware/requestID'; // ← named import (correct)
 import authRouter from './routes/auth';
 import meRouter from './routes/me';
 import healthRouter from './routes/health';
@@ -26,10 +27,13 @@ app.use(cors(corsOptions));
 
 app.use(morgan('dev'));
 
-// routes
+// ✅ rate-limit only the auth endpoint (uses your installed dep)
+app.use('/api/v1/auth/login', rateLimit({ windowMs: 5 * 60 * 1000, max: 30 }));
+
+// routes (✅ these result in /api/v1/auth/login, /api/v1/me, and /health)
 app.use('/api/v1/auth', authRouter);
-app.use('/api/v1', meRouter);
-app.use('/', healthRouter);
+app.use('/api/v1', meRouter);   // me.ts defines '/me' → final /api/v1/me
+app.use('/', healthRouter);     // health.ts defines '/health' → final /health
 
 // 404
 app.use((req, res) => res.status(404).json({ error: 'not_found' }));

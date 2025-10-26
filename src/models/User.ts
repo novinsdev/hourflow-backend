@@ -8,6 +8,9 @@ const UserSchema = new Schema({
   clientId: { type: Schema.Types.ObjectId, ref: 'Client' },
   siteIds: [{ type: Schema.Types.ObjectId, ref: 'Site' }],
   hourlyRate: { type: Number },
+
+  loginCodeHash: { type: String },         // bcrypt hash of 6-digit code
+  loginCodeExpiresAt: { type: Date },      // optional TTL for real OTP later
 }, { timestamps: true });
 
 export type UserDoc = InferSchemaType<typeof UserSchema> & { _id: any };

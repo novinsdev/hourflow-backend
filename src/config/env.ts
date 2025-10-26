@@ -11,7 +11,7 @@ export const env = {
   port: parseInt(process.env.PORT || '4000', 10),
   mongoUri: requireEnv('MONGODB_URI'),
   jwtSecret: requireEnv('JWT_SECRET'),
-  allowedOrigins: (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean),
-  firebaseServiceAccountJson: process.env.FIREBASE_SERVICE_ACCOUNT_JSON || null,
-  googleAppCredsPath: process.env.GOOGLE_APPLICATION_CREDENTIALS || null,
+  allowedOrigins: (process.env.ALLOWED_ORIGINS || '')
+    .split(',').map(s => s.trim()).filter(Boolean),
+  demoLoginCode: process.env.DEMO_LOGIN_CODE || '123456', // ← needed by /auth/login
 };
