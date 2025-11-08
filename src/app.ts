@@ -1,48 +1,35 @@
 import express from 'express';
-import cors from 'cors';
 import helmet from 'helmet';
+import cors from 'cors';
 import morgan from 'morgan';
-import rateLimit from 'express-rate-limit'; // ← add this
-import { env } from './config/env';
-import { requestId } from './middleware/requestID'; // ← named import (correct)
-import authRouter from './routes/auth';
-import meRouter from './routes/me';
-import healthRouter from './routes/health';
+import env from './config/env';
+import authRoutes from './routes/auth.routes';
+// import meRoutes from './routes/me'; // if you keep it separate
 
 const app = express();
 
 app.use(helmet());
 app.use(express.json());
-app.use(requestId);
+app.use(morgan(env.nodeEnv === 'development' ? 'dev' : 'combined'));
 
-const corsOptions = {
-  origin: (origin: any, cb: any) => {
-    if (!origin) return cb(null, true); // mobile/dev tools
-    if (env.allowedOrigins.length === 0 || env.allowedOrigins.includes(origin)) return cb(null, true);
-    return cb(new Error('Not allowed by CORS'));
+app.use(cors({
+  origin(origin, cb) {
+    if (!origin) return cb(null, true); // allow non-browser tools
+    const allow = new Set([...env.allowedOrigins, ...env.CORS_ORIGINS]);
+    return allow.size === 0 || allow.has(origin) ? cb(null, true) : cb(new Error('Not allowed by CORS'));
   },
   credentials: true,
-};
-app.use(cors(corsOptions));
+}));
 
-app.use(morgan('dev'));
+app.get('/health', (_req, res) => res.json({ ok: true }));
 
-// ✅ rate-limit only the auth endpoint (uses your installed dep)
-app.use('/api/v1/auth/login', rateLimit({ windowMs: 5 * 60 * 1000, max: 30 }));
+app.use('/api/v1/auth', authRoutes);
+// app.use('/api/v1', meRoutes); // optional, if using separate me.ts
 
-// routes (✅ these result in /api/v1/auth/login, /api/v1/me, and /health)
-app.use('/api/v1/auth', authRouter);
-app.use('/api/v1', meRouter);   // me.ts defines '/me' → final /api/v1/me
-app.use('/', healthRouter);     // health.ts defines '/health' → final /health
-
-// 404
-app.use((req, res) => res.status(404).json({ error: 'not_found' }));
-
-// error handler (basic)
+// central error fallback (keep last)
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error(`[err][${_req.headers['x-request-id']}]`, err);
-  const status = err.status || 500;
-  res.status(status).json({ error: err.code || 'server_error', message: env.nodeEnv === 'development' ? err.message : undefined });
+  console.error(err);
+  res.status(500).json({ error: 'server_error' });
 });
 
 export default app;

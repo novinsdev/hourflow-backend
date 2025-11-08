@@ -1,20 +1,24 @@
 import { Router } from 'express';
 import { authJwt } from '../middleware/authJwt';
-import { User } from '../models/User';
+import { User } from '../models/user.model';
 
-const r = Router();
+const router = Router();
 
-r.get('/me', authJwt, async (req, res) => {
-  const userId = req.user!.sub;
-  const user = await User.findById(userId).lean();
+router.get('/me', authJwt, async (req, res) => {
+  const id = (req as any).user?.id || (req as any).user?.sub;
+  if (!id) return res.status(401).json({ error: 'unauthorized' });
+  const user = await User.findById(id);
   if (!user) return res.status(404).json({ error: 'not_found' });
-  res.json({
+  return res.json({
     id: user._id,
     name: user.name,
     email: user.email,
     role: user.role,
-    photoUrl: user.photoUrl,
+    clientId: user.clientId,
+    siteIds: user.siteIds ?? [],
+    hourlyRate: user.hourlyRate,
+    createdAt: user.createdAt,
   });
 });
 
-export default r;
+export default router;

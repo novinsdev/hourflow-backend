@@ -1,31 +1,33 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { env } from '../config/env';
+import env from '../config/env';
 
-export interface AppUserClaims {
-  sub: string;       // user id
+const JWT_SECRET = env.JWT_SECRET;
+
+export interface AuthUser {
+  id: string;
   role: 'employee' | 'manager' | 'admin';
   clientId?: string;
 }
 
 export function authJwt(req: Request, res: Response, next: NextFunction) {
-  const h = req.headers.authorization || '';
-  const token = h.startsWith('Bearer ') ? h.slice(7) : '';
-  if (!token) return res.status(401).json({ error: 'unauthorized' });
   try {
-    const claims = jwt.verify(token, env.jwtSecret) as AppUserClaims;
-    (req as any).user = claims;
-    next();
+    const header = req.headers.authorization || '';
+    const [, token] = header.split(' ');
+    if (!token) return res.status(401).json({ error: 'unauthorized' });
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    (req as any).user = { id: decoded.sub, role: decoded.role, clientId: decoded.clientId } as AuthUser;
+    return next();
   } catch {
     return res.status(401).json({ error: 'unauthorized' });
   }
 }
 
-export function roleGuard(...roles: AppUserClaims['role'][]) {
+export function roleGuard(...allowed: AuthUser['role'][]) {
   return (req: Request, res: Response, next: NextFunction) => {
-    const user = (req as any).user as AppUserClaims | undefined;
-    if (!user) return res.status(401).json({ error: 'unauthorized' });
-    if (!roles.includes(user.role)) return res.status(403).json({ error: 'forbidden' });
-    next();
+    const role = (req as any).user?.role as AuthUser['role'] | undefined;
+    if (!role) return res.status(401).json({ error: 'unauthorized' });
+    if (!allowed.includes(role)) return res.status(403).json({ error: 'forbidden' });
+    return next();
   };
 }

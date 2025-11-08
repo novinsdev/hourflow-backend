@@ -1,46 +1,22 @@
-import http from 'http';
 import mongoose from 'mongoose';
+import env from './config/env';
 import app from './app';
-import { env } from './config/env';
 
-async function main() {
+async function start() {
   try {
-    // Connect DB
-    await mongoose.connect(env.mongoUri, {
-      // options can be added here if needed
+    await mongoose.connect(env.MONGODB_URI);
+    const server = app.listen(env.PORT, () => {
+      console.log(`Server listening on :${env.PORT} (${env.NODE_ENV})`);
     });
 
-    const server = http.createServer(app);
-
-    server.listen(env.port, () => {
-      console.log(`[server] pid=${process.pid} env=${env.nodeEnv} port=${env.port}`);
-    });
-
-    // Graceful shutdown
-    const shutdown = (sig: string) => async () => {
-      console.log(`[server] received ${sig}, shutting down...`);
-      server.close(() => {
-        mongoose.connection.close(false).then(() => {
-          console.log('[server] closed.');
-          process.exit(0);
-        });
-      });
-      // Force-exit safeguard in case something hangs
-      setTimeout(() => process.exit(1), 10_000).unref();
-    };
-
-    ['SIGINT', 'SIGTERM'].forEach((sig) => process.on(sig as NodeJS.Signals, shutdown(sig)));
-    process.on('unhandledRejection', (err) => {
-      console.error('[server] unhandledRejection', err);
-    });
-    process.on('uncaughtException', (err) => {
-      console.error('[server] uncaughtException', err);
-      process.exit(1);
-    });
+    // graceful shutdown
+    const shutdown = () => server.close(() => mongoose.connection.close(false).then(() => process.exit(0)));
+    process.on('SIGINT', shutdown);
+    process.on('SIGTERM', shutdown);
   } catch (err) {
-    console.error('[server] startup error', err);
+    console.error('Boot error', err);
     process.exit(1);
   }
 }
 
-main();
+start();
