@@ -4,7 +4,7 @@ import cors from 'cors';
 import morgan from 'morgan';
 import env from './config/env';
 import authRoutes from './routes/auth.routes';
-// import meRoutes from './routes/me'; // if you keep it separate
+import scheduleRoutes from './routes/schedule.routes';
 
 const app = express();
 
@@ -24,7 +24,7 @@ app.use(cors({
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
 app.use('/api/v1/auth', authRoutes);
-// app.use('/api/v1', meRoutes); // optional, if using separate me.ts
+app.use('/api/v1/shifts', scheduleRoutes);
 
 // central error fallback (keep last)
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
