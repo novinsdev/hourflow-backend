@@ -2,6 +2,7 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
 import bcrypt from 'bcryptjs';
 
 export type UserRole = 'employee' | 'manager' | 'admin';
+export type ShiftType = "MORNING" | "AFTERNOON" | "NIGHT";
 
 export interface IUser extends Document {
   role: UserRole;
@@ -12,6 +13,7 @@ export interface IUser extends Document {
   hourlyRate?: number;
   password: string; // bcrypt hash
   createdAt: Date;
+  shiftType?: ShiftType;
   comparePassword(plain: string): Promise<boolean>;
 }
 
@@ -22,6 +24,11 @@ const UserSchema = new Schema<IUser>(
     email: { type: String, required: true, unique: true, lowercase: true, index: true },
     clientId: { type: Schema.Types.ObjectId, ref: 'Client' },
     siteIds: [{ type: Schema.Types.ObjectId, ref: 'Site' }],
+    shiftType: {
+      type: String,
+      enum: ["MORNING", "AFTERNOON", "NIGHT"],
+      default: undefined, // user may not be assigned yet
+    },
     hourlyRate: { type: Number },
     password: { type: String, required: true, select: false },
   },
