@@ -6,6 +6,7 @@ import env from './config/env';
 import authRoutes from './routes/auth.routes';
 import scheduleRoutes from './routes/schedule.routes';
 import clockRoutes from "./routes/clock.routes";
+import benefitRoutes from './routes/benefit.routes';
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.get('/health', (_req, res) => res.json({ ok: true }));
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/shifts', scheduleRoutes);
 app.use("/api/v1/clock", clockRoutes);
+app.use('/api/v1/benefits', benefitRoutes);
 
 // central error fallback (keep last)
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
