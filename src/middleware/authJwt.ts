@@ -16,7 +16,7 @@ export function authJwt(req: Request, res: Response, next: NextFunction) {
     const [, token] = header.split(' ');
     if (!token) return res.status(401).json({ error: 'unauthorized' });
     const decoded = jwt.verify(token, JWT_SECRET) as any;
-    (req as any).user = { id: decoded.sub, role: decoded.role, clientId: decoded.clientId } as AuthUser;
+    (req as any).user = { id: decoded.sub, role: decoded.role, email: decoded.email, clientId: decoded.clientId } as AuthUser;
     return next();
   } catch {
     return res.status(401).json({ error: 'unauthorized' });

@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import env from './config/env';
 import authRoutes from './routes/auth.routes';
 import scheduleRoutes from './routes/schedule.routes';
+import clockRoutes from "./routes/clock.routes";
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.get('/health', (_req, res) => res.json({ ok: true }));
 
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/shifts', scheduleRoutes);
+app.use("/api/v1/clock", clockRoutes);
 
 // central error fallback (keep last)
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

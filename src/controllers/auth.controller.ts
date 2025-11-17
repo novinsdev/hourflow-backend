@@ -8,7 +8,7 @@ const JWT_EXPIRES_IN = env.JWT_EXPIRES_IN;
 
 function signToken(user: any) {
   return jwt.sign(
-    { sub: user._id.toString(), role: user.role, clientId: user.clientId?.toString?.() },
+    { sub: user._id.toString(), role: user.role, email: user.email, clientId: user.clientId?.toString?.() },
     JWT_SECRET,
     // HS256 is the default; specifying algorithm sometimes trips TS overloads
     { expiresIn: JWT_EXPIRES_IN } as SignOptions
