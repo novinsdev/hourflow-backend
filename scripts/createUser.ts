@@ -18,13 +18,13 @@ type Role = 'employee' | 'manager' | 'admin';
 
 // ==== EDIT THESE FIELDS EACH TIME ====
 const USER = {
-  name: 'Test User 2',
-  email: 'test2@gmail.com',
+  name: 'Test User 1',
+  email: 'test1@gmail.com',
   password: '111111',
   role: 'employee' as Role,
 
   // Optional fields (uncomment if needed)
-  // hourlyRate: 40,
+  hourlyRate: 50,
   // clientId: '66edc5f4e7dce3f2a0b1c999',
   // siteIds: ['66edc5f4e7dce3f2a0b1c111', '66edc5f4e7dce3f2a0b1c222'],
 };

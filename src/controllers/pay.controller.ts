@@ -52,7 +52,7 @@ export async function getPayOverview(req: Request, res: Response) {
         const user = await User.findById(userId);
         if (!user) return res.status(404).json({ error: "User not found" });
 
-        const hourly = user.hourlyRate ?? PAYROLL_CONFIG.DEFAULT_HOURLY_RATE;
+        const hourly = user.hourlyRate ?? 0;
 
         const { start, end, label, nextPayDate } = getBiWeeklyPeriod();
 
@@ -116,7 +116,7 @@ export async function getPayPeriods(req: Request, res: Response) {
 
         const user = await User.findById(userId);
         const hourly =
-            user?.hourlyRate ?? PAYROLL_CONFIG.DEFAULT_HOURLY_RATE;
+            user?.hourlyRate ?? 0;
 
         const { HISTORY_PERIODS } = PAYROLL_CONFIG;
 

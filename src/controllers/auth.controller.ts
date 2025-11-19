@@ -66,3 +66,5 @@ export async function me(req: Request, res: Response) {
 export async function logout(_req: Request, res: Response) {
   return res.status(204).end();
 }
+
+

@@ -29,7 +29,7 @@ const UserSchema = new Schema<IUser>(
       enum: ["MORNING", "AFTERNOON", "NIGHT"],
       default: undefined, // user may not be assigned yet
     },
-    hourlyRate: { type: Number },
+    hourlyRate: { type: Number, default: 30 },
     password: { type: String, required: true, select: false },
   },
   { timestamps: { createdAt: true, updatedAt: true } }
