@@ -100,6 +100,7 @@ export async function getPayOverview(req: Request, res: Response) {
             estimatedPay: Math.round(estimatedPay),
             ytdHours,
             ytdEstimatedPay: Math.round(ytdHours * hourly),
+            hourlyRate: hourly,
         });
     } catch (e) {
         console.error("getPayOverview error:", e);

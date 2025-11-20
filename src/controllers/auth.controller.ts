@@ -63,6 +63,45 @@ export async function me(req: Request, res: Response) {
   }
 }
 
+export async function updateMe(req: Request, res: Response) {
+  try {
+    const userId = (req as any).user?.id || (req as any).user?.sub;
+    if (!userId) {
+      return res.status(401).json({ error: "unauthorized" });
+    }
+
+    const { name } = req.body;
+
+    if (!name || typeof name !== "string" || !name.trim()) {
+      return res.status(400).json({ error: "invalid_name" });
+    }
+
+    const updated = await User.findByIdAndUpdate(
+      userId,
+      { name: name.trim() },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ error: "not_found" });
+    }
+
+    return res.json({
+      id: updated._id,
+      name: updated.name,
+      email: updated.email,
+      role: updated.role,
+      clientId: updated.clientId,
+      siteIds: updated.siteIds ?? [],
+      hourlyRate: updated.hourlyRate,
+      createdAt: updated.createdAt,
+    });
+  } catch (err) {
+    console.error("updateMe error", err);
+    return res.status(500).json({ error: "server_error" });
+  }
+}
+
 export async function logout(_req: Request, res: Response) {
   return res.status(204).end();
 }
