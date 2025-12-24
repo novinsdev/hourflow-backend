@@ -7,7 +7,9 @@ const router = Router();
 // GET /api/v1/clock/sessions?from=&to=
 router.get("/sessions", authJwt, async (req, res) => {
   try {
-    const userId = req.user.id;
+    const auth = (req as any).user;
+    if (!auth?.id) return res.status(401).json({ error: "unauthorized" });
+    const userId = auth.id;
     const { from, to } = req.query;
 
     const sessions = await ClockSession.find({
@@ -28,8 +30,10 @@ router.get("/sessions", authJwt, async (req, res) => {
 // POST /api/v1/clock/in
 router.post("/in", authJwt, async (req, res) => {
   try {
-    const userId = req.user.id;
-    const userEmail = req.user.email;
+    const auth = (req as any).user;
+    if (!auth?.id) return res.status(401).json({ error: "unauthorized" });
+    const userId = auth.id;
+    const userEmail = auth.email;
 
     const open = await ClockSession.findOne({
       userId,
@@ -59,7 +63,9 @@ router.post("/in", authJwt, async (req, res) => {
 // POST /api/v1/clock/out
 router.post("/out", authJwt, async (req, res) => {
   try {
-    const userId = req.user.id;
+    const auth = (req as any).user;
+    if (!auth?.id) return res.status(401).json({ error: "unauthorized" });
+    const userId = auth.id;
     const breakMinutes = typeof req.body?.breakMinutes === "number" ? req.body.breakMinutes : 0;
 
     const open = await ClockSession.findOne({

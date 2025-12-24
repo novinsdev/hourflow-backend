@@ -153,7 +153,9 @@ export async function approveTimesheet(req: Request, res: Response) {
     session.clockInAt = session.pendingEdit.clockInAt || session.clockInAt;
     session.clockOutAt = session.pendingEdit.clockOutAt || session.clockOutAt;
     session.breakMinutes = session.pendingEdit.breakMinutes ?? session.breakMinutes;
-    session.totalMinutes = computeMinutes(session.clockInAt, session.clockOutAt, session.breakMinutes);
+    const start = session.clockInAt ? new Date(session.clockInAt) : undefined;
+    const end = session.clockOutAt ? new Date(session.clockOutAt) : undefined;
+    session.totalMinutes = computeMinutes(start, end, session.breakMinutes);
     session.pendingEdit = undefined;
   }
 
@@ -194,13 +196,15 @@ export async function bulkApprove(req: Request, res: Response) {
   const sessions = await ClockSession.find({ _id: { $in: ids } });
   for (const session of sessions) {
     const fromStatus = session.status;
-    if (session.pendingEdit) {
-      session.clockInAt = session.pendingEdit.clockInAt || session.clockInAt;
-      session.clockOutAt = session.pendingEdit.clockOutAt || session.clockOutAt;
-      session.breakMinutes = session.pendingEdit.breakMinutes ?? session.breakMinutes;
-      session.totalMinutes = computeMinutes(session.clockInAt, session.clockOutAt, session.breakMinutes);
-      session.pendingEdit = undefined;
-    }
+  if (session.pendingEdit) {
+    session.clockInAt = session.pendingEdit.clockInAt || session.clockInAt;
+    session.clockOutAt = session.pendingEdit.clockOutAt || session.clockOutAt;
+    session.breakMinutes = session.pendingEdit.breakMinutes ?? session.breakMinutes;
+    const start = session.clockInAt ? new Date(session.clockInAt) : undefined;
+    const end = session.clockOutAt ? new Date(session.clockOutAt) : undefined;
+    session.totalMinutes = computeMinutes(start, end, session.breakMinutes);
+    session.pendingEdit = undefined;
+  }
     session.status = "approved";
     session.reviewedAt = new Date();
     session.approverId = auth.id as any;
