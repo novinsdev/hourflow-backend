@@ -8,6 +8,7 @@ import {
   rejectTimesheet,
   bulkApprove,
   getAuditLog,
+  createManualTimesheet,
 } from "../controllers/timesheet.controller";
 
 const router = Router();
@@ -19,5 +20,6 @@ router.post("/:id/approve", authJwt, roleGuard("manager", "admin"), approveTimes
 router.post("/:id/reject", authJwt, roleGuard("manager", "admin"), rejectTimesheet);
 router.post("/bulk-approve", authJwt, roleGuard("manager", "admin"), bulkApprove);
 router.get("/:id/audit", authJwt, getAuditLog);
+router.post("/manual", authJwt, createManualTimesheet);
 
 export default router;

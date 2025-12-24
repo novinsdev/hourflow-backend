@@ -20,6 +20,17 @@ function computeMinutes(clockInAt?: Date, clockOutAt?: Date, breakMinutes = 0) {
   return Math.max(0, Math.round(diff / 60000) - (breakMinutes || 0));
 }
 
+function currentWeekWindow() {
+  const now = new Date();
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  start.setDate(now.getDate() - now.getDay()); // Sunday as week start
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  end.setHours(23, 59, 59, 999);
+  return { start, end, today: now };
+}
+
 async function logAudit(sessionId: string, actor: AuthUser, action: string, payload?: any, fromStatus?: string, toStatus?: string, note?: string) {
   await TimesheetAudit.create({
     sessionId,
@@ -126,6 +137,10 @@ export async function submitEditRequest(req: Request, res: Response) {
     return res.status(403).json({ error: "forbidden" });
   }
 
+  if (["approved", "paid"].includes(session.status)) {
+    return res.status(400).json({ error: "locked", message: "Approved timesheets cannot be edited." });
+  }
+
   session.pendingEdit = {
     clockInAt: clockInAt ? new Date(clockInAt) : session.clockInAt,
     clockOutAt: clockOutAt ? new Date(clockOutAt) : session.clockOutAt,
@@ -229,4 +244,54 @@ export async function getAuditLog(req: Request, res: Response) {
 
   const events = await TimesheetAudit.find({ sessionId }).sort({ createdAt: -1 });
   res.json(events);
+}
+
+export async function createManualTimesheet(req: Request, res: Response) {
+  const auth = (req as any).user as AuthUser | undefined;
+  if (!auth) return res.status(401).json({ error: "unauthorized" });
+
+  const { clockInAt, clockOutAt, breakMinutes } = req.body || {};
+  if (!clockInAt || !clockOutAt) {
+    return res.status(400).json({ error: "bad_request", message: "clockInAt and clockOutAt are required." });
+  }
+
+  const start = new Date(clockInAt);
+  const end = new Date(clockOutAt);
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+    return res.status(400).json({ error: "bad_request", message: "Invalid date format." });
+  }
+  if (end <= start) {
+    return res.status(400).json({ error: "bad_request", message: "clockOutAt must be after clockInAt." });
+  }
+
+  const { start: weekStart, end: weekEnd, today } = currentWeekWindow();
+  if (start > today || end > today) {
+    return res.status(400).json({ error: "bad_request", message: "Manual timesheets must be in the past." });
+  }
+  if (start < weekStart || end > weekEnd) {
+    return res.status(400).json({ error: "bad_request", message: "Manual timesheets must be within this week." });
+  }
+  // enforce "day before" semantics: not for today
+  const todayDate = new Date(today.toDateString()).getTime();
+  const startDateOnly = new Date(start.toDateString()).getTime();
+  if (startDateOnly === todayDate) {
+    return res.status(400).json({ error: "bad_request", message: "Use clock in/out for today's shift." });
+  }
+
+  const breakMins = typeof breakMinutes === "number" ? breakMinutes : 0;
+  const totalMinutes = computeMinutes(start, end, breakMins);
+
+  const session = await ClockSession.create({
+    userId: auth.id,
+    userEmail: (auth as any).email || "",
+    clockInAt: start,
+    clockOutAt: end,
+    breakMinutes: breakMins,
+    totalMinutes,
+    status: "submitted",
+    submittedAt: new Date(),
+  });
+
+  await logAudit(session.id, auth, "submit", { manual: true });
+  return res.json(session);
 }
