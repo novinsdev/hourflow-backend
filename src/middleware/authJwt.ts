@@ -8,6 +8,7 @@ export interface AuthUser {
   id: string;
   role: 'employee' | 'manager' | 'admin';
   clientId?: string;
+  email?: string;
 }
 
 export function authJwt(req: Request, res: Response, next: NextFunction) {

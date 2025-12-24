@@ -8,6 +8,7 @@ import scheduleRoutes from './routes/schedule.routes';
 import clockRoutes from "./routes/clock.routes";
 import benefitRoutes from './routes/benefit.routes';
 import payRoutes from './routes/pay.routes';
+import timesheetRoutes from "./routes/timesheet.routes";
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.use('/api/v1/shifts', scheduleRoutes);
 app.use("/api/v1/clock", clockRoutes);
 app.use('/api/v1/benefits', benefitRoutes);
 app.use("/api/v1/pay", payRoutes);
+app.use("/api/v1/timesheets", timesheetRoutes);
 
 // central error fallback (keep last)
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

@@ -60,6 +60,7 @@ router.post("/in", authJwt, async (req, res) => {
 router.post("/out", authJwt, async (req, res) => {
   try {
     const userId = req.user.id;
+    const breakMinutes = typeof req.body?.breakMinutes === "number" ? req.body.breakMinutes : 0;
 
     const open = await ClockSession.findOne({
       userId,
@@ -76,9 +77,11 @@ router.post("/out", authJwt, async (req, res) => {
     // auto-calc totalMinutes
     const start = new Date(open.clockInAt).getTime();
     const end = open.clockOutAt.getTime();
-    open.totalMinutes = Math.round((end - start) / 60000);
+    open.breakMinutes = breakMinutes;
+    open.totalMinutes = Math.max(0, Math.round((end - start) / 60000) - breakMinutes);
 
     open.status = "submitted"; // for demo
+    open.submittedAt = new Date();
 
     await open.save();
 
