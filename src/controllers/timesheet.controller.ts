@@ -4,8 +4,6 @@ import TimesheetAudit from "../models/timesheetAudit.model";
 import { AuthUser } from "../middleware/authJwt";
 import { User } from "../models/user.model";
 
-type AuthRequest = Request & { user: AuthUser };
-
 // -------------------------
 // Helpers
 // -------------------------
@@ -67,9 +65,11 @@ function buildAnomalies(session: any, user: any) {
 // -------------------------
 // Controllers
 // -------------------------
-export async function getMyTimesheets(req: AuthRequest, res: Response) {
+export async function getMyTimesheets(req: Request, res: Response) {
+  const auth = (req as any).user as AuthUser | undefined;
+  if (!auth) return res.status(401).json({ error: "unauthorized" });
   const { start, end } = parseRange(req.query.from, req.query.to);
-  const userId = req.user.id;
+  const userId = auth.id;
   const sessions = await ClockSession.find({
     userId,
     clockInAt: { $gte: start, $lte: end },
@@ -84,7 +84,7 @@ export async function getMyTimesheets(req: AuthRequest, res: Response) {
   res.json(data);
 }
 
-export async function getPendingTimesheets(req: AuthRequest, res: Response) {
+export async function getPendingTimesheets(req: Request, res: Response) {
   const { start, end } = parseRange(req.query.from, req.query.to);
   const status = (req.query.status as string) || "submitted";
   const { userId } = req.query;
@@ -112,15 +112,17 @@ export async function getPendingTimesheets(req: AuthRequest, res: Response) {
   res.json(data);
 }
 
-export async function submitEditRequest(req: AuthRequest, res: Response) {
+export async function submitEditRequest(req: Request, res: Response) {
+  const auth = (req as any).user as AuthUser | undefined;
+  if (!auth) return res.status(401).json({ error: "unauthorized" });
   const sessionId = req.params.id;
   const { clockInAt, clockOutAt, breakMinutes, reason } = req.body || {};
 
   const session = await ClockSession.findById(sessionId);
   if (!session) return res.status(404).json({ error: "not_found" });
 
-  const isOwner = session.userId.toString() === req.user.id;
-  if (!isOwner && !["manager", "admin"].includes(req.user.role)) {
+  const isOwner = session.userId.toString() === auth.id;
+  if (!isOwner && !["manager", "admin"].includes(auth.role)) {
     return res.status(403).json({ error: "forbidden" });
   }
 
@@ -130,18 +132,20 @@ export async function submitEditRequest(req: AuthRequest, res: Response) {
     breakMinutes: typeof breakMinutes === "number" ? breakMinutes : session.breakMinutes,
     reason: reason || "Edit requested",
     requestedAt: new Date(),
-    requestedBy: req.user.id as any,
+    requestedBy: auth.id as any,
   };
   if (session.status === "approved") {
     session.status = "submitted";
   }
   await session.save();
 
-  await logAudit(session.id, req.user, "submit_edit", { clockInAt, clockOutAt, breakMinutes, reason }, session.status);
+  await logAudit(session.id, auth, "submit_edit", { clockInAt, clockOutAt, breakMinutes, reason }, session.status);
   res.json(session);
 }
 
-export async function approveTimesheet(req: AuthRequest, res: Response) {
+export async function approveTimesheet(req: Request, res: Response) {
+  const auth = (req as any).user as AuthUser | undefined;
+  if (!auth) return res.status(401).json({ error: "unauthorized" });
   const session = await ClockSession.findById(req.params.id);
   if (!session) return res.status(404).json({ error: "not_found" });
 
@@ -156,28 +160,32 @@ export async function approveTimesheet(req: AuthRequest, res: Response) {
   const fromStatus = session.status;
   session.status = "approved";
   session.reviewedAt = new Date();
-  session.approverId = req.user.id as any;
+  session.approverId = auth.id as any;
   session.approverComment = req.body?.comment;
   await session.save();
 
-  await logAudit(session.id, req.user, "approve", undefined, fromStatus, "approved", req.body?.comment);
+  await logAudit(session.id, auth, "approve", undefined, fromStatus, "approved", req.body?.comment);
   res.json(session);
 }
 
-export async function rejectTimesheet(req: AuthRequest, res: Response) {
+export async function rejectTimesheet(req: Request, res: Response) {
+  const auth = (req as any).user as AuthUser | undefined;
+  if (!auth) return res.status(401).json({ error: "unauthorized" });
   const session = await ClockSession.findById(req.params.id);
   if (!session) return res.status(404).json({ error: "not_found" });
   const fromStatus = session.status;
   session.status = "rejected";
   session.reviewedAt = new Date();
-  session.approverId = req.user.id as any;
+  session.approverId = auth.id as any;
   session.approverComment = req.body?.comment;
   await session.save();
-  await logAudit(session.id, req.user, "reject", undefined, fromStatus, "rejected", req.body?.comment);
+  await logAudit(session.id, auth, "reject", undefined, fromStatus, "rejected", req.body?.comment);
   res.json(session);
 }
 
-export async function bulkApprove(req: AuthRequest, res: Response) {
+export async function bulkApprove(req: Request, res: Response) {
+  const auth = (req as any).user as AuthUser | undefined;
+  if (!auth) return res.status(401).json({ error: "unauthorized" });
   const { ids } = req.body as { ids?: string[] };
   if (!ids || !Array.isArray(ids) || ids.length === 0) {
     return res.status(400).json({ error: "bad_request", message: "ids required" });
@@ -195,21 +203,23 @@ export async function bulkApprove(req: AuthRequest, res: Response) {
     }
     session.status = "approved";
     session.reviewedAt = new Date();
-    session.approverId = req.user.id as any;
+    session.approverId = auth.id as any;
     await session.save();
-    await logAudit(session.id, req.user, "approve", undefined, fromStatus, "approved");
+    await logAudit(session.id, auth, "approve", undefined, fromStatus, "approved");
   }
 
   res.json({ updated: sessions.length });
 }
 
-export async function getAuditLog(req: AuthRequest, res: Response) {
+export async function getAuditLog(req: Request, res: Response) {
+  const auth = (req as any).user as AuthUser | undefined;
+  if (!auth) return res.status(401).json({ error: "unauthorized" });
   const sessionId = req.params.id;
   const session = await ClockSession.findById(sessionId).select("userId");
   if (!session) return res.status(404).json({ error: "not_found" });
 
-  const isOwner = session.userId.toString() === req.user.id;
-  if (!isOwner && !["manager", "admin"].includes(req.user.role)) {
+  const isOwner = session.userId.toString() === auth.id;
+  if (!isOwner && !["manager", "admin"].includes(auth.role)) {
     return res.status(403).json({ error: "forbidden" });
   }
 

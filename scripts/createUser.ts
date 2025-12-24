@@ -19,9 +19,9 @@ type Role = 'employee' | 'manager' | 'admin';
 // ==== EDIT THESE FIELDS EACH TIME ====
 const USER = {
   name: 'Test User 1',
-  email: 'test1@gmail.com',
+  email: 'test3@gmail.com',
   password: '111111',
-  role: 'employee' as Role,
+  role: 'manager' as Role,
 
   // Optional fields (uncomment if needed)
   hourlyRate: 50,
